@@ -14,7 +14,8 @@ import org.kohsuke.stapler.DataBoundSetter;
 /**
  * Allows the plugin to be configured at the folder level (rather than the global level)
  */
-public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFolder<?>> {
+// FIXME extract PluginConfiguration to interface, so that GlobalPluginConfiguration and FolderPluginConfiguration can inherit it
+public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFolder<?>> implements IConfig {
 
     private Boolean cache;
 
@@ -24,15 +25,9 @@ public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFo
 
     private Transformations transformations;
 
-    public FolderPluginConfiguration() {
-    }
-
     @DataBoundConstructor
-    public FolderPluginConfiguration(Boolean cache, Client client, ListSecrets listSecrets, Transformations transformations) {
-        this.cache = cache;
-        this.client = client;
-        this.listSecrets = listSecrets;
-        this.transformations = transformations;
+    public FolderPluginConfiguration() {
+        // empty DataBoundConstructor for Stapler (= all properties are optional)
     }
 
     public Boolean getCache() {
@@ -40,7 +35,6 @@ public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFo
     }
 
     @DataBoundSetter
-    @SuppressWarnings("unused")
     public void setCache(Boolean cache) {
         this.cache = cache;
     }
@@ -50,7 +44,6 @@ public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFo
     }
 
     @DataBoundSetter
-    @SuppressWarnings("unused")
     public void setClient(Client client) {
         this.client = client;
     }
@@ -60,7 +53,6 @@ public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFo
     }
 
     @DataBoundSetter
-    @SuppressWarnings("unused")
     public void setListSecrets(ListSecrets listSecrets) {
         this.listSecrets = listSecrets;
     }
@@ -70,13 +62,14 @@ public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFo
     }
 
     @DataBoundSetter
-    @SuppressWarnings("unused")
     public void setTransformations(Transformations transformations) {
         this.transformations = transformations;
     }
 
-
-    public PluginConfiguration getConfiguration() {
+    public PluginConfiguration build() {
+        // nulls are handled by the CredentialsSupplier
+        // FIXME need to create a new InternalConfiguration POJO (to be used by the CredentialsSupplier)
+        // FIXME this avoids the unwanted XML load() and save() calls that the global PluginConfiguration does
         var configuration = new PluginConfiguration();
         configuration.setCache(cache);
         configuration.setClient(client);

@@ -3,7 +3,7 @@ jobs:
       folder('foo') {
         description('This Folder is configured as code')
         configure {
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'configuration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com'
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'configuration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
         }
       }

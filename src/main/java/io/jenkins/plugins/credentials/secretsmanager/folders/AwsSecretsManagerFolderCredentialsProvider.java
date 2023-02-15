@@ -9,78 +9,56 @@ import hudson.Extension;
 import hudson.model.ItemGroup;
 import hudson.model.ModelObject;
 import hudson.security.ACL;
-import io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration;
-import io.jenkins.plugins.credentials.secretsmanager.folders.supplier.CredentialsSupplier;
-import jenkins.model.Jenkins;
+import io.jenkins.plugins.credentials.secretsmanager.folders.supplier.FolderCredentialsSupplier;
 import org.acegisecurity.Authentication;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 @Extension
 public class AwsSecretsManagerFolderCredentialsProvider extends CredentialsProvider {
 
     private static final Logger LOG = Logger.getLogger(AwsSecretsManagerFolderCredentialsProvider.class.getName());
 
-    private final AwsSecretsManagerFolderCredentialsStore store = new AwsSecretsManagerFolderCredentialsStore(this);
-
     // FIXME re-enable memoizer / caching
-    private final CredentialsSupplier credentialsSupplier = CredentialsSupplier.standard();
+    private final FolderCredentialsSupplier credentialsSupplier = new FolderCredentialsSupplier();
 
     @Override
     @NonNull
     public <C extends Credentials> List<C> getCredentials(@Nonnull Class<C> type,
                                                           ItemGroup itemGroup,
                                                           Authentication authentication) {
-
-
-        final var creds = new ArrayList<C>();
-
         if (ACL.SYSTEM.equals(authentication)) {
-            LOG.info(() -> "AWS Credentials Provider folder-scoped lookup");
+            if (itemGroup instanceof AbstractFolder<?>) {
+                LOG.fine(() -> "AWS Secrets Manager Credentials Provider folder-scoped lookup");
 
-            // Reverse hierarchical traversal - if no config found in this folder, go to the parent
-            // FIXME does not work yet, because the passed-in itemGroup is not an AbstractFolder
-            for (ItemGroup g = itemGroup; g instanceof AbstractFolder; g = (AbstractFolder.class.cast(g)).getParent()) {
-                var folder = ((AbstractFolder<?>) g);
-                final var folderProperties = folder.getProperties();
-                final var folderPluginConfiguration = folderProperties.get(FolderPluginConfiguration.class);
-                final var folderName = folder.getName();
+                final var folderName = itemGroup.getFullName();
 
-                LOG.info(() -> "Checking plugin configuration for folder " + folderName);
+                final var folderCredentials = credentialsSupplier.get(folderName);
 
-                final var pluginConfiguration = folderPluginConfiguration.getConfiguration();
-
-                if (pluginConfiguration == null) {
-                    LOG.info(() -> "No plugin configuration found for folder " + folderName);
-                    continue;
-                }
-
-                final var folderCredentials = credentialsSupplier.get(pluginConfiguration);
-
-                // FIXME Associate the credential object with the folder
-//                for (StandardCredentials c : folderCreds) {
-//                    ((AbstractVaultBaseStandardCredentials) c).setContext(g);
-//                }
-
-                folderCredentials.stream()
+                return folderCredentials.stream()
                         .filter(c -> type.isAssignableFrom(c.getClass()))
                         .map(type::cast)
-                        .forEach(creds::add);
+                        .collect(Collectors.toList());
             }
         }
 
-        return Collections.unmodifiableList(creds);
+        return Collections.emptyList();
     }
 
     @Override
     public CredentialsStore getStore(ModelObject object) {
-        return object == Jenkins.get() ? store : null;
+        if (object instanceof ItemGroup<?>) {
+            final var itemGroup = (ItemGroup<?>) object;
+            return new AwsSecretsManagerFolderCredentialsStore(this, itemGroup);
+        }
+
+        return null;
     }
 
     @Override

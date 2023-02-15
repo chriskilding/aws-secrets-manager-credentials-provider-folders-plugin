@@ -11,20 +11,8 @@ public abstract class AwsTags {
 
     }
 
-    public static Tag filename(String filename) {
-        return AwsTags.tag(Tags.filename, filename);
-    }
-
-    public static Tag username(String username) {
-        return AwsTags.tag(Tags.username, username);
-    }
-
     public static Tag type(String type) {
         return tag(Tags.type, type);
-    }
-
-    public static Tag tag(String key) {
-        return new Tag().withKey(key);
     }
 
     public static Tag tag(String key, String value) {

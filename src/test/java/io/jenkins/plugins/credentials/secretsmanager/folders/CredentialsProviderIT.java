@@ -2,186 +2,145 @@ package io.jenkins.plugins.credentials.secretsmanager.folders;
 
 import com.amazonaws.services.secretsmanager.model.CreateSecretRequest;
 import com.amazonaws.services.secretsmanager.model.CreateSecretResult;
-import com.amazonaws.services.secretsmanager.model.DeleteSecretRequest;
 import com.amazonaws.services.secretsmanager.model.Tag;
 import com.cloudbees.hudson.plugins.folder.AbstractFolder;
-import com.cloudbees.plugins.credentials.CredentialsScope;
-import com.cloudbees.plugins.credentials.CredentialsUnavailableException;
+import com.cloudbees.plugins.credentials.CredentialsProvider;
 import com.cloudbees.plugins.credentials.common.StandardCredentials;
-import com.cloudbees.plugins.credentials.domains.Domain;
-import hudson.util.Secret;
+import hudson.model.ItemGroup;
+import hudson.security.ACL;
+import hudson.util.ListBoxModel;
 import io.jenkins.plugins.casc.misc.ConfiguredWithCode;
+import io.jenkins.plugins.casc.misc.JenkinsConfiguredWithCodeRule;
 import io.jenkins.plugins.credentials.secretsmanager.factory.Type;
-import io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration;
-import io.jenkins.plugins.credentials.secretsmanager.folders.util.*;
+import io.jenkins.plugins.credentials.secretsmanager.folders.util.AWSSecretsManagerRule;
+import io.jenkins.plugins.credentials.secretsmanager.folders.util.AwsTags;
+import io.jenkins.plugins.credentials.secretsmanager.folders.util.CredentialNames;
+import io.jenkins.plugins.credentials.secretsmanager.folders.util.Rules;
+import jenkins.model.Jenkins;
+import org.assertj.core.api.Assertions;
 import org.jenkinsci.plugins.plaincredentials.StringCredentials;
-import org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
+import static io.jenkins.plugins.credentials.secretsmanager.folders.util.assertions.CustomAssertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
 
-/**
- * The plugin should support CredentialsProvider usage to list available credentials.
- */
 public class CredentialsProviderIT {
 
     private static final String SECRET = "supersecret";
 
-    public final MyJenkinsConfiguredWithCodeRule jenkins = new MyJenkinsConfiguredWithCodeRule();
+    public final JenkinsConfiguredWithCodeRule jenkins = new JenkinsConfiguredWithCodeRule();
     public final AWSSecretsManagerRule secretsManager = new AWSSecretsManagerRule();
 
     @Rule
     public final TestRule chain = Rules.jenkinsWithSecretsManager(jenkins, secretsManager);
 
     @Test
-    @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldStartEmpty() {
-        // When
-        final var credentials = lookup(StringCredentials.class);
-
-        // Then
-        assertThat(credentials).isEmpty();
-    }
-
-    @Test
-    @ConfiguredWithCode(value = "/folders/single.yml")
-    public void shouldHaveFolderLevelConfiguration() {
-        // When
-        final var folderPluginConfiguration = getFolderConfiguration("foo");
-        final var actual = folderPluginConfiguration.getConfiguration().getClient().getEndpointConfiguration();
-
-        // Then
-        assertSoftly(s -> {
-            s.assertThat(actual.getServiceEndpoint()).isEqualTo("https://example.com");
-            s.assertThat(actual.getSigningRegion()).isEqualTo("us-east-1");
-        });
-    }
-
-    @Test
-    @ConfiguredWithCode(value = "/folders/multiple.yml")
-    public void shouldSupportMultipleFolders() {
-        // When
-        final var foo = getFolderConfiguration("foo");
-        final var fooServiceEndpoint = foo.getConfiguration().getClient().getEndpointConfiguration().getServiceEndpoint();
-
-        final var bar = getFolderConfiguration("bar");
-        final var barServiceEndpoint = bar.getConfiguration().getClient().getEndpointConfiguration().getServiceEndpoint();
-
-        // Then
-        assertSoftly(s -> {
-            s.assertThat(fooServiceEndpoint).as("Foo").isEqualTo("https://example.com/foo");
-            s.assertThat(barServiceEndpoint).as("Bar").isEqualTo("https://example.com/bar");
-        });
-    }
-
-    @Ignore
     @ConfiguredWithCode(value = "/default.yml")
-    public void shouldFailGracefullyWhenSecretsManagerUnavailable() {
+    public void shouldBeEmptyWhenProviderNotConfigured() {
+        // Given
+        final var folder = getFolder("foo");
+
         // When
-        final var credentials = lookup(StringCredentials.class);
+        final var credentials = lookupCredentials(StringCredentials.class, folder);
 
         // Then
-        assertThat(credentials).isEmpty();
+        Assertions.assertThat(credentials).isEmpty();
     }
 
-    @Ignore
+    @Test
     @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldUseSecretNameAsCredentialName() {
+    public void shouldBeEmptyWhenAwsHasNoSecrets() {
+        // Given
+        final var folder = getFolder("foo");
+
+        // When
+        final var credentials = lookupCredentials(StringCredentials.class, folder);
+
+        // Then
+        Assertions.assertThat(credentials).isEmpty();
+    }
+
+    @Test
+    @ConfiguredWithCode(value = "/integration.yml")
+    public void shouldSupportLookupCredentials() {
         // Given
         final var secret = createStringSecret(SECRET);
+        // And
+        final var folder = getFolder("foo");
 
         // When
-        final var credentialNames = jenkins.getCredentials().list(StringCredentials.class);
+        final var credentials = lookupCredentials(StringCredentials.class, folder);
+        final var c = credentials.get(0);
+
+        // Then
+        assertThat(c)
+                .hasId(secret.getName())
+                .hasSecret(SECRET);
+    }
+
+    @Test
+    @ConfiguredWithCode(value = "/integration.yml")
+    public void shouldSupportListCredentials() {
+        // Given
+        final var secret = createStringSecret(SECRET);
+        // And
+        final var folder = getFolder("foo");
+
+        // When
+        final var credentialNames = listCredentials(StringCredentials.class, folder);
 
         // Then
         assertThat(credentialNames)
-                .extracting("name")
-                .containsOnly(secret.getName());
+                .containsOption(secret.getName(), secret.getName());
     }
 
-    @Ignore
+    @Test
     @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldTolerateDeletedCredentials() {
+    public void shouldFolderScopeItsCredentials() {
         // Given
-        final var foo = createStringSecret(SECRET);
-        final var bar = createStringSecret(SECRET);
+        createStringSecret(SECRET);
+        // And
+        final var folder = getFolder("foo");
 
         // When
-        deleteSecret(bar.getName());
-        final var credentials = lookup(StringCredentials.class);
+        final var globalCredentials = lookupCredentials(StringCredentials.class, Jenkins.get());
+        final var folderScopedCredentials = lookupCredentials(StringCredentials.class, folder);
 
         // Then
-        assertThat(credentials)
-                .extracting("id", "secret")
-                .containsOnly(tuple(foo.getName(), Secret.fromString(SECRET)));
-    }
-
-    @Ignore
-    @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldTolerateRecentlyDeletedCredentials() {
-        // Given
-        final var foo = createStringSecret(SECRET);
-        final var bar = createStringSecret(SECRET);
-
-        // When
-        final var credentials = lookup(StringCredentials.class);
-        deleteSecret(bar.getName());
-
-        // Then
-        final var fooCreds = credentials.stream().filter(c -> c.getId().equals(foo.getName())).findFirst().orElseThrow(() -> new IllegalStateException("Needed a credential, but it did not exist"));
-        final var barCreds = credentials.stream().filter(c -> c.getId().equals(bar.getName())).findFirst().orElseThrow(() -> new IllegalStateException("Needed a credential, but it did not exist"));
-
         assertSoftly(s -> {
-            s.assertThat(fooCreds.getSecret()).as("Foo").isEqualTo(Secret.fromString(SECRET));
-            s.assertThatThrownBy(barCreds::getSecret).as("Bar").isInstanceOf(CredentialsUnavailableException.class);
+            s.assertThat(globalCredentials).as("Global").isEmpty();
+            s.assertThat(folderScopedCredentials).as("Folder-scoped").hasSize(1);
         });
     }
 
     @Test
-    @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldNotSupportUpdates() {
-        final var credential = new StringCredentialsImpl(CredentialsScope.GLOBAL,"foo", "desc", Secret.fromString(SECRET));
+    @ConfiguredWithCode(value = "/nested.yml")
+    public void shouldSupportNestedFolders() {
+        // Given
+        final var secret = createStringSecret(SECRET);
+        // And
+        final var folder = getFolder("foo/bar");
 
-        final var store = jenkins.getCredentials().lookupStore(AwsSecretsManagerFolderCredentialsStore.class);
+        // When
+        final var credentials = lookupCredentials(StringCredentials.class, folder);
+        final var c = credentials.get(0);
 
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> store.updateCredentials(Domain.global(), credential, credential))
-                .withMessage("Jenkins may not update credentials in AWS Secrets Manager");
+        // Then
+        assertThat(c)
+                .hasId(secret.getName())
+                .hasSecret(SECRET);
     }
 
-    @Test
-    @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldNotSupportInserts() {
-        final var store = jenkins.getCredentials().lookupStore(AwsSecretsManagerFolderCredentialsStore.class);
-
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> store.addCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "foo", "desc", Secret.fromString(SECRET))))
-                .withMessage("Jenkins may not add credentials to AWS Secrets Manager");
+    private static <C extends StandardCredentials> List<C> lookupCredentials(Class<C> type, ItemGroup<?> itemGroup) {
+        return CredentialsProvider.lookupCredentials(type, itemGroup, ACL.SYSTEM, List.of());
     }
 
-    @Test
-    @ConfiguredWithCode(value = "/integration.yml")
-    public void shouldNotSupportDeletes() {
-        final var store = jenkins.getCredentials().lookupStore(AwsSecretsManagerFolderCredentialsStore.class);
-
-        assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> store.removeCredentials(Domain.global(), new StringCredentialsImpl(CredentialsScope.GLOBAL, "foo", "desc", Secret.fromString(SECRET))))
-                .withMessage("Jenkins may not remove credentials from AWS Secrets Manager");
-    }
-
-    private <C extends StandardCredentials> List<C> lookup(Class<C> type) {
-        return jenkins.getCredentials().lookup(type);
-    }
-
-    private void deleteSecret(String secretId) {
-        final var request = new DeleteSecretRequest().withSecretId(secretId);
-        secretsManager.getClient().deleteSecret(request);
+    private static <C extends StandardCredentials> ListBoxModel listCredentials(Class<C> type, ItemGroup<?> itemGroup) {
+        return CredentialsProvider.listCredentials(type, itemGroup, null, null, null);
     }
 
     private CreateSecretResult createStringSecret(String secretString) {
@@ -199,14 +158,8 @@ public class CredentialsProviderIT {
         return secretsManager.getClient().createSecret(request);
     }
 
-    private FolderPluginConfiguration getFolderConfiguration(String name) {
-        final var folder = getFolder(name);
-        final var folderProperties = folder.getProperties();
-        return folderProperties.get(FolderPluginConfiguration.class);
-    }
-
     private AbstractFolder<?> getFolder(String name) {
-        var folder = jenkins.jenkins.getItem(name);
+        var folder = jenkins.jenkins.getItemByFullName(name);
 
         if (folder instanceof AbstractFolder) {
             return (AbstractFolder<?>) folder;

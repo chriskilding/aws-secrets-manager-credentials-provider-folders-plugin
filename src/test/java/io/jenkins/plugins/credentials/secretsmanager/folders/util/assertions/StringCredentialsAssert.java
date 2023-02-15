@@ -22,13 +22,11 @@ public class StringCredentialsAssert extends AbstractAssert<StringCredentialsAss
     }
 
     public StringCredentialsAssert hasId(String id) {
-        new StandardCredentialsAssert(actual).hasId(id);
+        isNotNull();
 
-        return this;
-    }
-
-    public StringCredentialsAssert hasSameDescriptorIconAs(StringCredentials theirs) {
-        new StandardCredentialsAssert(actual).hasSameDescriptorIconAs(theirs);
+        if (!Objects.equals(actual.getId(), id)) {
+            failWithMessage("Expected ID to be <%s> but was <%s>", id, actual.getId());
+        }
 
         return this;
     }

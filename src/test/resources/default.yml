@@ -1,0 +1,5 @@
+jobs:
+  - script: >
+      folder('foo') {
+        description('This Folder is configured as code')
+      }

@@ -1,7 +1,8 @@
 jobs:
   - script: >
-      folder('foo') {
-        description('This Folder is configured as code')
+      folder('foo') {}
+        
+      folder('foo/bar') {
         configure {
           it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << '${AWS_SERVICE_ENDPOINT}'
           it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << '${AWS_SIGNING_REGION}'

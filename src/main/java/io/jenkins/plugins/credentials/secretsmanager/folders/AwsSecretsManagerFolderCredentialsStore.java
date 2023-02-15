@@ -7,7 +7,7 @@ import com.cloudbees.plugins.credentials.CredentialsStoreAction;
 import com.cloudbees.plugins.credentials.domains.Domain;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
-import hudson.model.ModelObject;
+import hudson.model.ItemGroup;
 import hudson.security.ACL;
 import hudson.security.Permission;
 import jenkins.model.Jenkins;
@@ -24,17 +24,21 @@ import java.util.List;
 public class AwsSecretsManagerFolderCredentialsStore extends CredentialsStore {
 
     private final CredentialsProvider provider;
+
+    private final ItemGroup<?> context;
+
     private final AwsCredentialsStoreAction action = new AwsCredentialsStoreAction(this);
 
-    public AwsSecretsManagerFolderCredentialsStore(AwsSecretsManagerFolderCredentialsProvider provider) {
+    public AwsSecretsManagerFolderCredentialsStore(AwsSecretsManagerFolderCredentialsProvider provider, ItemGroup<?> context) {
         super(AwsSecretsManagerFolderCredentialsProvider.class);
         this.provider = provider;
+        this.context = context;
     }
 
     @Nonnull
     @Override
-    public ModelObject getContext() {
-        return Jenkins.get();
+    public ItemGroup<?> getContext() {
+        return this.context;
     }
 
     @Override
@@ -51,8 +55,9 @@ public class AwsSecretsManagerFolderCredentialsStore extends CredentialsStore {
         if (Domain.global().equals(domain)
                 && Jenkins.get().hasPermission(CredentialsProvider.VIEW)) {
 
-            // FIXME don't pass Jenkins.get(), pass the folder instead
-            return provider.getCredentials(Credentials.class, Jenkins.get(), ACL.SYSTEM);
+            final var itemGroup = getContext();
+
+            return provider.getCredentials(Credentials.class, itemGroup, ACL.SYSTEM);
         } else {
             return Collections.emptyList();
         }
