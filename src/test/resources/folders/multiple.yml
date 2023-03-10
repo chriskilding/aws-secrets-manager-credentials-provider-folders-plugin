@@ -3,15 +3,15 @@ jobs:
       folder('foo') {
         description('Foo folder')
         configure {
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com/foo'
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com/foo'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
         }
       }
         
       folder('bar') {
         description('Bar folder')
         configure {
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com/bar'
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com/bar'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
         }
       }

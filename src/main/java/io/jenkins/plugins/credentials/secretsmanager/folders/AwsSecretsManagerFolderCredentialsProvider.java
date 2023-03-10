@@ -26,6 +26,7 @@ public class AwsSecretsManagerFolderCredentialsProvider extends CredentialsProvi
     private static final Logger LOG = Logger.getLogger(AwsSecretsManagerFolderCredentialsProvider.class.getName());
 
     // FIXME re-enable memoizer / caching
+    // Note that the cache structure must be THREAD-SAFE because multiple threads could call CredentialsProvider#getCredentials below
     private final FolderCredentialsSupplier credentialsSupplier = new FolderCredentialsSupplier();
 
     @Override

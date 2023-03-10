@@ -24,9 +24,11 @@ public class FolderCredentialsSupplier {
 
             // the Jenkins user may not have configured this plugin on the folder
             if (folderPluginConfiguration != null) {
-                final var pluginConfiguration = folderPluginConfiguration.build();
+                final var ourPluginConfiguration = folderPluginConfiguration.getPluginConfiguration();
 
-                return credentialsSupplier.get(pluginConfiguration);
+                if (ourPluginConfiguration != null) {
+                    return credentialsSupplier.get(ourPluginConfiguration.build());
+                }
             }
         }
 

@@ -4,10 +4,7 @@ import com.cloudbees.hudson.plugins.folder.AbstractFolder;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderProperty;
 import com.cloudbees.hudson.plugins.folder.AbstractFolderPropertyDescriptor;
 import hudson.Extension;
-import io.jenkins.plugins.credentials.secretsmanager.config.Client;
-import io.jenkins.plugins.credentials.secretsmanager.config.ListSecrets;
 import io.jenkins.plugins.credentials.secretsmanager.config.PluginConfiguration;
-import io.jenkins.plugins.credentials.secretsmanager.config.Transformations;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.DataBoundSetter;
 
@@ -15,67 +12,30 @@ import org.kohsuke.stapler.DataBoundSetter;
  * Allows the plugin to be configured at the folder level (rather than the global level)
  */
 // FIXME extract PluginConfiguration to interface, so that GlobalPluginConfiguration and FolderPluginConfiguration can inherit it
-public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFolder<?>> implements IConfig {
+public class FolderPluginConfiguration extends AbstractFolderProperty<AbstractFolder<?>> {
 
-    private Boolean cache;
-
-    private Client client;
-
-    private ListSecrets listSecrets;
-
-    private Transformations transformations;
+    private OurPluginConfiguration pluginConfiguration;
 
     @DataBoundConstructor
     public FolderPluginConfiguration() {
         // empty DataBoundConstructor for Stapler (= all properties are optional)
     }
 
-    public Boolean getCache() {
-        return cache;
+    public OurPluginConfiguration getPluginConfiguration() {
+        return pluginConfiguration;
     }
 
     @DataBoundSetter
-    public void setCache(Boolean cache) {
-        this.cache = cache;
-    }
-
-    public Client getClient() {
-        return client;
-    }
-
-    @DataBoundSetter
-    public void setClient(Client client) {
-        this.client = client;
-    }
-
-    public ListSecrets getListSecrets() {
-        return listSecrets;
-    }
-
-    @DataBoundSetter
-    public void setListSecrets(ListSecrets listSecrets) {
-        this.listSecrets = listSecrets;
-    }
-
-    public Transformations getTransformations() {
-        return transformations;
-    }
-
-    @DataBoundSetter
-    public void setTransformations(Transformations transformations) {
-        this.transformations = transformations;
+    public void setPluginConfiguration(OurPluginConfiguration pluginConfiguration) {
+        this.pluginConfiguration = pluginConfiguration;
     }
 
     public PluginConfiguration build() {
-        // nulls are handled by the CredentialsSupplier
-        // FIXME need to create a new InternalConfiguration POJO (to be used by the CredentialsSupplier)
-        // FIXME this avoids the unwanted XML load() and save() calls that the global PluginConfiguration does
-        var configuration = new PluginConfiguration();
-        configuration.setCache(cache);
-        configuration.setClient(client);
-        configuration.setListSecrets(listSecrets);
-        configuration.setTransformations(transformations);
-        return configuration;
+        if (pluginConfiguration == null) {
+            return new PluginConfiguration();
+        }
+
+        return pluginConfiguration.build();
     }
 
     @Extension

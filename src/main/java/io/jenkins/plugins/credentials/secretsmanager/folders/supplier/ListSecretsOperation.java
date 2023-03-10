@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
  * Look up all secrets in Secrets Manager using the ListSecrets command. Paginate through secrets
  * until there are none left to get.
  */
+// TODO make this public in the upstream plugin so we don't need to duplicate it here
 class ListSecretsOperation implements Supplier<Collection<SecretListEntry>> {
 
     private final AWSSecretsManager client;

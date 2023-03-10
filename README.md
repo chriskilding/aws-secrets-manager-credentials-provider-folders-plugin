@@ -13,7 +13,7 @@ This plugin extends the AWS Secrets Manager Credentials Provider plugin to provi
 
 This is primarily helpful in the following use cases:
 
-- **Multi-tenancy.** In this use case, you have multiple products on a shared Jenkins. Each product is assigned its own folder on Jenkins. This plugin allows product-scoped credentials, which are only visible to jobs in the product team's folder.
+- **Multi-tenancy.** In this use case, you have multiple products (or product teams) on a shared Jenkins. Each product is assigned its own folder on Jenkins. This plugin allows product-scoped credentials, which are only visible to jobs in the product team's folder.
 - **Multi-environment.** In this use case, you have one Jenkins server that orchestrates jobs for multiple environments (e.g. staging, production). Each environment is assigned its own folder on Jenkins. This plugin allows environment-scoped credentials, so for example the staging credentials are only visible to jobs in the staging folder, and likewise for production.
 
 In these use cases, the fundamental unit of organization is normally the AWS account. (E.g. each product has its own AWS account, with its own secrets in Secrets Manager.) In each Jenkins folder, you will likely want to configure the credentials provider to assume a role in the corresponding AWS account.
@@ -44,7 +44,7 @@ The plugin has the same configuration options as the AWS Secrets Manager Credent
 
 You can set plugin configuration at the folder level using the Web UI.
 
-Go to `Jenkins` > `<folder>` > `Configure` > `AWS Secrets Manager Credentials Provider` and change the settings.
+Go to `Jenkins` > `<folder>` > `Configure` > `AWS Secrets Manager Credentials Provider`, tick the box to enable it for `<folder>`, and change the settings.
 
 ### Configuration As Code (CasC)
 
@@ -60,8 +60,8 @@ jobs:
       folder('<folder>') {
         description('This folder is configured as code')
         configure {
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com'
-          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
         }
       }
 ```
@@ -124,8 +124,9 @@ Create a new folder `<folder>`.
 
 Edit the folder's Secrets Manager configuration (go to `Jenkins` -> `<folder>` -> `Configure`) to use Moto:
 
-1. Enable the `Endpoint Configuration` option
-2. Set `Service Endpoint` to `http://localhost:5000`
-3. Set `Signing Region` to `us-east-1`
-4. Click `Save`
-5. Try loading the folder-scoped credentials that have come from Moto, or using them in Jenkins jobs.
+1. Tick the box to enable the Secrets Manager folder-scoped provider on `<folder>`
+2. Enable the `Endpoint Configuration` option
+3. Set `Service Endpoint` to `http://localhost:5000`
+4. Set `Signing Region` to `us-east-1`
+5. Click `Save`
+6. Try loading the folder-scoped credentials that have come from Moto, or using them in Jenkins jobs.
