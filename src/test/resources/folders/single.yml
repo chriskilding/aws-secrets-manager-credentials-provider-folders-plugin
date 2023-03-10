@@ -1,0 +1,9 @@
+jobs:
+  - script: >
+      folder('foo') {
+        description('This Folder is configured as code')
+        configure {
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << 'https://example.com'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << 'us-east-1'
+        }
+      }

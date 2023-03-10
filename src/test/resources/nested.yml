@@ -1,0 +1,10 @@
+jobs:
+  - script: >
+      folder('foo') {}
+        
+      folder('foo/bar') {
+        configure {
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / serviceEndpoint << '${AWS_SERVICE_ENDPOINT}'
+          it / 'properties' / 'io.jenkins.plugins.credentials.secretsmanager.folders.config.FolderPluginConfiguration' / 'pluginConfiguration' / 'client' / 'endpointConfiguration' / signingRegion << '${AWS_SIGNING_REGION}'
+        }
+      }
